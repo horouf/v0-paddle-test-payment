@@ -1,7 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Environment, EventName, Paddle } from "@paddle/paddle-node-sdk"
 
-// Set runtime to nodejs to ensure req.text() works properly
+// Required for raw body access in Vercel / App Router
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
+
+// Vercel edge runtimes don't support req.text(), so stick with node
 export const runtime = "nodejs"
 
 // Initialize Paddle SDK
@@ -13,59 +20,45 @@ export async function POST(req: NextRequest) {
   console.log("📬 Received Paddle webhook")
 
   try {
-    // Extract signature from headers
     const signature = req.headers.get("paddle-signature") || ""
-    console.log("Signature:", signature)
-
-    // Get the webhook secret
     const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET || ""
 
-    // Get the raw request body
     const rawBody = await req.text()
     console.log("Raw webhook body:", rawBody)
 
     let eventData
     let verified = false
 
-    // Verify the webhook signature if we have both signature and secret
     if (signature && webhookSecret && rawBody) {
       try {
-        // The `unmarshal` function will validate the integrity of the webhook
         eventData = await paddle.webhooks.unmarshal(rawBody, webhookSecret, signature)
         verified = true
         console.log("✅ Webhook signature verified")
       } catch (error) {
-        console.error("❌ Webhook signature verification failed:", error)
-        // Continue processing even if verification fails, but mark as unverified
+        console.error("❌ Signature verification failed:", error)
         try {
           eventData = JSON.parse(rawBody)
         } catch (parseError) {
-          console.error("Failed to parse webhook body as JSON:", parseError)
           return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 })
         }
       }
     } else {
-      // If we don't have signature or secret, just parse the JSON
-      console.warn("⚠️ Missing signature or webhook secret - skipping verification")
+      console.warn("⚠️ Missing signature or secret - skipping verification")
       try {
         eventData = JSON.parse(rawBody)
       } catch (parseError) {
-        console.error("Failed to parse webhook body as JSON:", parseError)
         return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 })
       }
     }
 
-    // Extract event type
     const eventType = eventData.eventType || eventData.event_type || "unknown"
 
-    // Log detailed information about the webhook
     console.log("=== PADDLE WEBHOOK RECEIVED ===")
     console.log(`Event Type: ${eventType}`)
     console.log(`Verified: ${verified ? "Yes" : "No"}`)
     console.log("Payload:", JSON.stringify(eventData, null, 2))
     console.log("===============================")
 
-    // Process different event types
     switch (eventType) {
       case EventName.SubscriptionActivated:
         console.log(`Subscription ${eventData.data?.id || "unknown"} was activated`)
@@ -83,7 +76,6 @@ export async function POST(req: NextRequest) {
         console.log(`Received ${eventType} event`)
     }
 
-    // Return success response
     return NextResponse.json({
       success: true,
       message: "Webhook received and processed",
