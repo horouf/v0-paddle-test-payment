@@ -18,11 +18,11 @@ export async function getPaddlePriceId() {
  * Server action to check if the webhook secret is configured
  */
 export async function checkWebhookSecretConfigured() {
-  const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET
-  const usingTestSecret = webhookSecret === "pdl_ntfset_01jsmeedxzygybd33gwak9rbaw_KrWV17WiZyPNuXRwAMemZPLJQ9v9tpLn"
+  const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET || ""
+  const apiKey = process.env.PADDLE_SECRET_TOKEN || process.env.PADDLE_CLIENT_TOKEN || ""
 
   return {
-    configured: !!webhookSecret,
-    usingTestSecret: usingTestSecret,
+    webhookConfigured: !!webhookSecret,
+    apiKeyConfigured: !!apiKey,
   }
 }

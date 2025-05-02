@@ -1,6 +1,6 @@
 # Simple Paddle Checkout
 
-A minimal implementation of Paddle checkout using Next.js.
+A minimal implementation of Paddle checkout using Next.js with comprehensive webhook handling.
 
 ## Environment Variables
 
@@ -11,8 +11,11 @@ Create a `.env.local` file in the root directory with the following variables:
 PADDLE_CLIENT_TOKEN=pt_your_client_token
 PADDLE_PRICE_ID=pri_your_price_id
 
-# For webhook verification
+# For webhook verification (required for webhooks)
 PADDLE_WEBHOOK_SECRET=your_webhook_secret
+
+# Optional: For API access (if different from client token)
+PADDLE_SECRET_TOKEN=your_api_key
 \`\`\`
 
 ## Getting Started
@@ -53,13 +56,24 @@ Make sure to set the same webhook secret in your Paddle dashboard and in your en
 
 ## Webhook Handling
 
-This implementation simply logs webhook payloads to the console. When a webhook is received:
+This implementation provides comprehensive webhook handling for Paddle events:
 
-1. The signature is verified using the Paddle SDK
-2. The webhook payload is logged to the console
-3. A success response is returned to Paddle
+1. Verifies the webhook signature using the Paddle SDK
+2. Processes different event types (subscriptions, customers, transactions)
+3. Logs detailed information about the events
+4. Can be extended to store data in a database
 
-To view webhook logs, check your server console or deployment logs.
+### Supported Event Types
+
+- Subscription Created/Updated
+- Customer Created/Updated
+- Transaction Completed
+- And other Paddle webhook events
+
+### Extending for Database Storage
+
+The webhook processing code includes commented sections for database integration.
+To store webhook data in a database, uncomment and implement the database methods in `lib/process-webhook.ts`.
 \`\`\`
 
-Let's also update the paddle-actions.ts file to remove any references to the webhook store:
+Let's update paddle-actions.ts to be more consistent with our implementation:
