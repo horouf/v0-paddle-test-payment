@@ -9,12 +9,13 @@ export function getPaddleInstance() {
     logLevel: LogLevel.error,
   }
 
-  // Use PADDLE_SECRET_TOKEN or fallback to PADDLE_CLIENT_TOKEN if not available
-  const apiKey = process.env.PADDLE_SECRET_TOKEN || process.env.PADDLE_CLIENT_TOKEN
+  // Use PADDLE_API_KEY as the primary key (this is what Paddle expects)
+  const apiKey = process.env.PADDLE_API_KEY
 
   if (!apiKey) {
-    console.error("Paddle API key is missing")
+    console.error("Paddle API key is missing - webhook verification will fail")
+    throw new Error("PADDLE_API_KEY environment variable is not set")
   }
 
-  return new Paddle(apiKey!, paddleOptions)
+  return new Paddle(apiKey, paddleOptions)
 }

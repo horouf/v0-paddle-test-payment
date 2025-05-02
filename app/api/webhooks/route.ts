@@ -30,6 +30,10 @@ export async function POST(req: NextRequest) {
     const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET || ""
     console.log("Webhook secret configured:", !!webhookSecret)
 
+    // Check if API key is configured
+    const apiKeyConfigured = !!process.env.PADDLE_API_KEY
+    console.log("API key configured:", apiKeyConfigured)
+
     // Get the raw request body
     const rawBody = await req.text()
 
@@ -41,9 +45,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Empty request body" }, { status: 400 })
     }
 
-    if (!signature || !webhookSecret) {
-      console.error("❌ Missing signature or webhook secret")
-      return NextResponse.json({ error: "Missing signature or webhook secret" }, { status: 400 })
+    if (!signature) {
+      console.error("❌ Missing signature in request headers")
+      return NextResponse.json({ error: "Missing signature" }, { status: 400 })
+    }
+
+    if (!webhookSecret) {
+      console.error("❌ Missing webhook secret in environment variables")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
+    if (!apiKeyConfigured) {
+      console.error("❌ Missing Paddle API key in environment variables")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
     try {
@@ -85,8 +99,15 @@ export async function POST(req: NextRequest) {
 
 // Add a GET handler for testing the endpoint
 export async function GET() {
+  const apiKeyConfigured = !!process.env.PADDLE_API_KEY
+  const webhookSecretConfigured = !!process.env.PADDLE_WEBHOOK_SECRET
+
   return NextResponse.json({
     success: true,
     message: "Webhook endpoint is working. Send a POST request with a valid Paddle webhook payload to test.",
+    configuration: {
+      apiKeyConfigured,
+      webhookSecretConfigured,
+    },
   })
 }

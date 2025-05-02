@@ -15,14 +15,22 @@ export async function getPaddlePriceId() {
 }
 
 /**
- * Server action to check if the webhook secret is configured
+ * Server action to check if required Paddle configuration is available
  */
-export async function checkWebhookSecretConfigured() {
+export async function checkPaddleConfiguration() {
+  const clientToken = process.env.PADDLE_CLIENT_TOKEN || ""
+  const priceId = process.env.PADDLE_PRICE_ID || ""
+  const apiKey = process.env.PADDLE_API_KEY || ""
   const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET || ""
-  const apiKey = process.env.PADDLE_SECRET_TOKEN || process.env.PADDLE_CLIENT_TOKEN || ""
 
   return {
-    webhookConfigured: !!webhookSecret,
-    apiKeyConfigured: !!apiKey,
+    checkoutConfigured: !!clientToken && !!priceId,
+    webhooksConfigured: !!apiKey && !!webhookSecret,
+    missingKeys: {
+      clientToken: !clientToken,
+      priceId: !priceId,
+      apiKey: !apiKey,
+      webhookSecret: !webhookSecret,
+    },
   }
 }
