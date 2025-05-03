@@ -1,188 +1,89 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getPaddleInstance } from "@/lib/paddle-utils"
-import { ProcessWebhook } from "@/lib/process-webhook"
-import fs from "fs"
-import path from "path"
+import { Environment, EventName, Paddle } from "@paddle/paddle-node-sdk"
 
-// Use Node.js runtime for better compatibility with raw body access
+// Required for raw body access in Vercel / App Router
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
+
+// Vercel edge runtimes don't support req.text(), so stick with node
 export const runtime = "nodejs"
 
-// Create webhook processor instance
-const webhookProcessor = new ProcessWebhook()
-
-// Function to log webhook data with high visibility
-function logWebhook(message: string, data?: any) {
-  // Create a very visible log entry
-  const logEntry = `
-${"=".repeat(100)}
-PADDLE WEBHOOK: ${message}
-${"=".repeat(100)}
-${data ? JSON.stringify(data, null, 2) : ""}
-${"=".repeat(100)}
-  `
-
-  // Log to console with high visibility
-  console.log(logEntry)
-
-  // Try to write to a log file if running locally
-  try {
-    if (process.env.NODE_ENV !== "production") {
-      const logDir = path.join(process.cwd(), "logs")
-
-      // Create logs directory if it doesn't exist
-      if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir, { recursive: true })
-      }
-
-      const logFile = path.join(logDir, "webhook-logs.txt")
-      fs.appendFileSync(logFile, `${new Date().toISOString()} - ${logEntry}\n\n`)
-    }
-  } catch (error) {
-    console.error("Failed to write to log file:", error)
-  }
-}
+// Initialize Paddle SDK
+const paddle = new Paddle(process.env.PADDLE_CLIENT_TOKEN!, {
+  environment: process.env.NODE_ENV === "production" ? Environment.production : Environment.sandbox,
+})
 
 export async function POST(req: NextRequest) {
-  logWebhook("RECEIVED")
+  console.log("📬 Received Paddle webhook")
 
   try {
-    // Log request details
-    const requestInfo = {
-      url: req.url,
-      method: req.method,
-      headers: Object.fromEntries(req.headers.entries()),
-    }
-    logWebhook("REQUEST DETAILS", requestInfo)
-
-    // Extract signature from headers
     const signature = req.headers.get("paddle-signature") || ""
-
-    // Get the webhook secret
     const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET || ""
 
-    // Check if API key is configured
-    const apiKeyConfigured = !!process.env.PADDLE_API_KEY
+    const rawBody = await req.text()
+    console.log("Raw webhook body:", rawBody)
 
-    // Configuration status
-    const configStatus = {
-      signaturePresent: !!signature,
-      webhookSecretConfigured: !!webhookSecret,
-      apiKeyConfigured: apiKeyConfigured,
-    }
-    logWebhook("CONFIGURATION STATUS", configStatus)
+    let eventData
+    let verified = false
 
-    // IMPORTANT: Clone the request before reading the body
-    const clonedReq = req.clone()
-
-    // Get the raw request body
-    const rawBody = await clonedReq.text()
-
-    // Log body info
-    logWebhook(`BODY RECEIVED (${rawBody.length} characters)`)
-
-    if (rawBody.length > 0) {
+    if (signature && webhookSecret && rawBody) {
       try {
-        // Try to parse as JSON for prettier logging
-        const jsonBody = JSON.parse(rawBody)
-        logWebhook("PARSED BODY", jsonBody)
-      } catch (e) {
-        // If not valid JSON, log as is
-        logWebhook("RAW BODY (not valid JSON)", { rawText: rawBody })
+        eventData = await paddle.webhooks.unmarshal(rawBody, webhookSecret, signature)
+        verified = true
+        console.log("✅ Webhook signature verified")
+      } catch (error) {
+        console.error("❌ Signature verification failed:", error)
+        try {
+          eventData = JSON.parse(rawBody)
+        } catch (parseError) {
+          return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 })
+        }
       }
     } else {
-      logWebhook("EMPTY BODY RECEIVED")
-
-      // Try alternative method to get body
+      console.warn("⚠️ Missing signature or secret - skipping verification")
       try {
-        const bodyBuffer = await new Response(req.body).arrayBuffer()
-        const bodyText = new TextDecoder().decode(bodyBuffer)
-
-        if (bodyText.length > 0) {
-          logWebhook(`ALTERNATIVE BODY (${bodyText.length} characters)`)
-          try {
-            const jsonBody = JSON.parse(bodyText)
-            logWebhook("PARSED ALTERNATIVE BODY", jsonBody)
-
-            // If this worked, use this body instead
-            return await processWebhook(bodyText, signature, webhookSecret, apiKeyConfigured)
-          } catch (e) {
-            logWebhook("ALTERNATIVE BODY (not valid JSON)", { rawText: bodyText })
-          }
-        } else {
-          logWebhook("ALTERNATIVE BODY ALSO EMPTY")
-        }
-      } catch (e) {
-        logWebhook("ALTERNATIVE BODY ACCESS FAILED", { error: String(e) })
+        eventData = JSON.parse(rawBody)
+      } catch (parseError) {
+        return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 })
       }
-
-      return NextResponse.json({ error: "Empty request body" }, { status: 400 })
     }
 
-    return await processWebhook(rawBody, signature, webhookSecret, apiKeyConfigured)
-  } catch (error) {
-    logWebhook("UNHANDLED ERROR", { error: String(error) })
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
-}
+    const eventType = eventData.eventType || eventData.event_type || "unknown"
 
-// Separate function to process the webhook once we have the body
-async function processWebhook(rawBody: string, signature: string, webhookSecret: string, apiKeyConfigured: boolean) {
-  if (!signature) {
-    logWebhook("MISSING SIGNATURE")
-    return NextResponse.json({ error: "Missing signature" }, { status: 400 })
-  }
+    console.log("=== PADDLE WEBHOOK RECEIVED ===")
+    console.log(`Event Type: ${eventType}`)
+    console.log(`Verified: ${verified ? "Yes" : "No"}`)
+    console.log("Payload:", JSON.stringify(eventData, null, 2))
+    console.log("===============================")
 
-  if (!webhookSecret) {
-    logWebhook("MISSING WEBHOOK SECRET")
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
-  }
-
-  if (!apiKeyConfigured) {
-    logWebhook("MISSING API KEY")
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
-  }
-
-  try {
-    // Get Paddle instance
-    const paddle = getPaddleInstance()
-
-    // Unmarshal and verify the webhook
-    logWebhook("ATTEMPTING SIGNATURE VERIFICATION")
-    const eventData = await paddle.webhooks.unmarshal(rawBody, webhookSecret, signature)
-    logWebhook("SIGNATURE VERIFIED SUCCESSFULLY")
-
-    // Log the event type and data
-    const eventType = eventData.eventType
-    logWebhook(`EVENT TYPE: ${eventType}`, eventData)
-
-    // Process the event using our ProcessWebhook class
-    const result = await webhookProcessor.processEvent(eventData)
-    logWebhook("EVENT PROCESSED SUCCESSFULLY", result)
+    switch (eventType) {
+      case EventName.SubscriptionActivated:
+        console.log(`Subscription ${eventData.data?.id || "unknown"} was activated`)
+        break
+      case EventName.SubscriptionCanceled:
+        console.log(`Subscription ${eventData.data?.id || "unknown"} was canceled`)
+        break
+      case EventName.TransactionPaid:
+        console.log(`Transaction ${eventData.data?.id || "unknown"} was paid`)
+        break
+      case "checkout.completed":
+        console.log(`Checkout ${eventData.data?.id || "unknown"} was completed`)
+        break
+      default:
+        console.log(`Received ${eventType} event`)
+    }
 
     return NextResponse.json({
       success: true,
       message: "Webhook received and processed",
       eventType: eventType,
+      verified: verified,
     })
   } catch (error) {
-    logWebhook("ERROR PROCESSING WEBHOOK", { error: String(error) })
+    console.error("Error processing webhook:", error)
     return NextResponse.json({ error: "Failed to process webhook" }, { status: 500 })
   }
-}
-
-// Add a GET handler for testing the endpoint
-export async function GET() {
-  logWebhook("GET REQUEST RECEIVED")
-
-  const apiKeyConfigured = !!process.env.PADDLE_API_KEY
-  const webhookSecretConfigured = !!process.env.PADDLE_WEBHOOK_SECRET
-
-  return NextResponse.json({
-    success: true,
-    message: "Webhook endpoint is working. Send a POST request with a valid Paddle webhook payload to test.",
-    configuration: {
-      apiKeyConfigured,
-      webhookSecretConfigured,
-    },
-  })
 }

@@ -58,9 +58,7 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
-    "@paddle/paddle-node-sdk": "latest",
-    "fs": "latest",
-    "path": "latest"
+    "@paddle/paddle-node-sdk": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
