@@ -16,12 +16,15 @@ export default function WebhookTestPage() {
               Main webhook endpoint: <code className="bg-blue-100 px-1 rounded">/api/webhooks</code>
               <br />
               Test body endpoint: <code className="bg-blue-100 px-1 rounded">/api/test-body</code>
+              <br />
+              Recent webhooks: <code className="bg-blue-100 px-1 rounded">/webhook-viewer</code>
             </p>
           </div>
 
           <div className="bg-yellow-50 p-4 rounded-md text-sm text-yellow-700 border border-yellow-200">
             <p className="font-medium">Troubleshooting Tips</p>
             <ul className="mt-1 list-disc list-inside space-y-1">
+              <li>Use the webhook viewer to see recent webhooks</li>
               <li>Use the test body endpoint to verify request body handling</li>
               <li>Check Vercel logs immediately after webhook events</li>
               <li>Verify webhook URL in Paddle dashboard</li>
@@ -35,6 +38,13 @@ export default function WebhookTestPage() {
               className="w-full py-2 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75 text-center"
             >
               Back to Checkout
+            </Link>
+
+            <Link
+              href="/webhook-viewer"
+              className="w-full py-2 px-4 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 text-center"
+            >
+              View Recent Webhooks
             </Link>
 
             <Link
@@ -55,7 +65,7 @@ export default function WebhookTestPage() {
 
             <Link
               href="/config-check"
-              className="w-full py-2 px-4 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 text-center"
+              className="w-full py-2 px-4 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-75 text-center"
             >
               Check Configuration
             </Link>

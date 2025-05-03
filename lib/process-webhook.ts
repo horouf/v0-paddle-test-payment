@@ -7,10 +7,18 @@ import {
   type SubscriptionUpdatedEvent,
   type TransactionCompletedEvent,
 } from "@paddle/paddle-node-sdk"
+import { storeWebhook } from "@/app/api/recent-webhooks/route"
 
 export class ProcessWebhook {
   async processEvent(eventData: EventEntity) {
     console.log(`Processing event: ${eventData.eventType}`)
+
+    // Store the webhook for viewing
+    try {
+      storeWebhook(eventData)
+    } catch (error) {
+      console.error("Failed to store webhook:", error)
+    }
 
     try {
       switch (eventData.eventType) {
@@ -57,9 +65,6 @@ export class ProcessWebhook {
         2,
       ),
     )
-
-    // In a real application, you would store this data in a database
-    // await this.updateSubscriptionData(event)
   }
 
   private async handleSubscriptionUpdated(event: SubscriptionUpdatedEvent) {
@@ -76,9 +81,6 @@ export class ProcessWebhook {
         2,
       ),
     )
-
-    // In a real application, you would update this data in a database
-    // await this.updateSubscriptionData(event)
   }
 
   private async handleCustomerCreated(event: CustomerCreatedEvent) {
@@ -93,9 +95,6 @@ export class ProcessWebhook {
         2,
       ),
     )
-
-    // In a real application, you would store this data in a database
-    // await this.updateCustomerData(event)
   }
 
   private async handleCustomerUpdated(event: CustomerUpdatedEvent) {
@@ -110,9 +109,6 @@ export class ProcessWebhook {
         2,
       ),
     )
-
-    // In a real application, you would update this data in a database
-    // await this.updateCustomerData(event)
   }
 
   private async handleTransactionCompleted(event: TransactionCompletedEvent) {
@@ -130,39 +126,5 @@ export class ProcessWebhook {
         2,
       ),
     )
-
-    // In a real application, you would store this data in a database
   }
-
-  /* 
-  // Uncomment and implement these methods if you're using a database
-  
-  private async updateSubscriptionData(event: SubscriptionCreatedEvent | SubscriptionUpdatedEvent) {
-    // Example database operation:
-    // const { error } = await db
-    //   .from('subscriptions')
-    //   .upsert({
-    //     subscription_id: event.data.id,
-    //     subscription_status: event.data.status,
-    //     price_id: event.data.items[0].price?.id ?? '',
-    //     product_id: event.data.items[0].price?.productId ?? '',
-    //     scheduled_change: event.data.scheduledChange?.effectiveAt,
-    //     customer_id: event.data.customerId,
-    //   });
-    
-    // if (error) throw error;
-  }
-
-  private async updateCustomerData(event: CustomerCreatedEvent | CustomerUpdatedEvent) {
-    // Example database operation:
-    // const { error } = await db
-    //   .from('customers')
-    //   .upsert({
-    //     customer_id: event.data.id,
-    //     email: event.data.email,
-    //   });
-    
-    // if (error) throw error;
-  }
-  */
 }
