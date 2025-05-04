@@ -1,4 +1,3 @@
-import Link from "next/link"
 import PaymentButton from "@/components/payment-button"
 
 export default function Home() {
@@ -20,15 +19,6 @@ export default function Home() {
         </div>
 
         <PaymentButton />
-
-        <div className="mt-6 flex justify-center space-x-4">
-          <Link href="/webhook-viewer" className="text-blue-600 hover:text-blue-800 underline">
-            View Webhooks
-          </Link>
-          <Link href="/config-check" className="text-blue-600 hover:text-blue-800 underline">
-            Check Configuration
-          </Link>
-        </div>
       </div>
     </main>
   )

@@ -1,31 +1,19 @@
 # Simple Paddle Checkout
 
-A minimal implementation of Paddle checkout using Next.js with comprehensive webhook handling.
+A minimal implementation of Paddle checkout using Next.js.
 
 ## Environment Variables
 
 Create a `.env.local` file in the root directory with the following variables:
 
 \`\`\`env
-# Required for checkout
+# Required environment variables
 PADDLE_CLIENT_TOKEN=pt_your_client_token
 PADDLE_PRICE_ID=pri_your_price_id
 
-# Required for webhook handling
-PADDLE_API_KEY=your_paddle_api_key
+# For webhook verification
 PADDLE_WEBHOOK_SECRET=your_webhook_secret
 \`\`\`
-
-### About Paddle API Keys
-
-- **PADDLE_CLIENT_TOKEN**: Used for the checkout frontend. This is a public token that starts with `pt_`.
-- **PADDLE_API_KEY**: Used for server-side API calls and webhook verification. This is a secret key that starts with `pk_` (for sandbox) or `pk_prod_` (for production).
-- **PADDLE_WEBHOOK_SECRET**: Used to verify incoming webhooks. This is set in your Paddle dashboard.
-
-You can find these keys in your [Paddle Dashboard](https://vendors.paddle.com/authentication):
-1. Go to Developer Tools > Authentication
-2. Generate API keys if you don't have them
-3. Set up webhook endpoints and secrets in the Notifications section
 
 ## Getting Started
 
@@ -65,24 +53,13 @@ Make sure to set the same webhook secret in your Paddle dashboard and in your en
 
 ## Webhook Handling
 
-This implementation provides comprehensive webhook handling for Paddle events:
+This implementation simply logs webhook payloads to the console. When a webhook is received:
 
-1. Verifies the webhook signature using the Paddle SDK
-2. Processes different event types (subscriptions, customers, transactions)
-3. Logs detailed information about the events
-4. Can be extended to store data in a database
+1. The signature is verified using the Paddle SDK
+2. The webhook payload is logged to the console
+3. A success response is returned to Paddle
 
-### Supported Event Types
-
-- Subscription Created/Updated
-- Customer Created/Updated
-- Transaction Completed
-- And other Paddle webhook events
-
-### Extending for Database Storage
-
-The webhook processing code includes commented sections for database integration.
-To store webhook data in a database, uncomment and implement the database methods in `lib/process-webhook.ts`.
+To view webhook logs, check your server console or deployment logs.
 \`\`\`
 
-Let's update paddle-actions.ts to check for the API key as well:
+Let's also update the paddle-actions.ts file to remove any references to the webhook store:

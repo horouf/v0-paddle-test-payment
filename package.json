@@ -59,9 +59,7 @@
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
     "@paddle/paddle-node-sdk": "latest",
-    "fs": "latest",
-    "path": "latest",
-    "crypto": "latest"
+    "node:stream": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
